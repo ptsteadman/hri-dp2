@@ -4,7 +4,7 @@ import rospy
 import math
 import tf2_ros
 
-BASE_FRAME = 'camera_link'
+BASE_FRAME = 'camera_depth_frame'
 FRAMES = [
         'head',
         'neck',
@@ -24,7 +24,7 @@ FRAMES = [
         ]
 
 if __name__ == '__main__':
-    rospy.init_node('camera_link')
+    rospy.init_node('tf_listener')
     tfBuffer = tf2_ros.Buffer()
     listener = tf2_ros.TransformListener(tfBuffer)
 
@@ -33,6 +33,7 @@ if __name__ == '__main__':
         try:
             frames = []
             for frame in FRAMES:
+                print BASE_FRAME
                 trans = tfBuffer.lookup_transform(BASE_FRAME, "%s_%d" % (frame, 1), rospy.Time())
                 frames.append(trans) 
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e: 

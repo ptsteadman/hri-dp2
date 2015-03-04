@@ -9,10 +9,22 @@ import sys
 import rospy
 import tf2_ros
 import math
+import numpy as np
 
 import baxter_interface
 
 from baxter_interface import CHECK_VERSION
+
+BASE_FRAME = 'camera_depth_frame'
+FRAMES = [
+        'torso',
+        'left_shoulder',
+        'left_elbow',
+        'left_hand',
+        'right_shoulder',
+        'right_elbow',
+        'right_hand',
+        ]
 
 
 def try_float(x):
@@ -22,9 +34,8 @@ def try_float(x):
         return None
 
 
-def get_joint_angles(user):
+def get_joint_angles(user, tfBuffer):
     """
-    Cleans a single line of recorded joint positions
 
     @param line: the line described in a list to process
     @param names: joint name keys
@@ -32,33 +43,42 @@ def get_joint_angles(user):
     joint_angles = dict()
     joint_angles['left'] = dict()
     joint_angles['right'] = dict()
-    try:
-        joint_angles['left']['left_s0'] = get_frame_rotation(user, '')
-        joint_angles['left']['left_s1'] = 0.0
-        joint_angles['left']['left_e0'] = 0.0
-        joint_angles['left']['left_e1'] = 0.0
-        joint_angles['left']['left_w0'] = 0.0
-        joint_angles['left']['left_w1'] = 0.0
-        joint_angles['left']['left_w2'] = 0.0
-        joint_angles['right']['right_s0'] = 0.0
-        joint_angles['right']['right_s1'] = 0.0
-        joint_angles['right']['right_e0'] = 0.0
-        joint_angles['right']['right_e1'] = 0.0
-        joint_angles['right']['right_w0'] = 0.0
-        joint_angles['right']['right_w1'] = 0.0
-        joint_angles['right']['right_w2'] = 0.0
 
-        trans = tfBuffer.lookup_transform(BASE_FRAME, "%s_%d" % (frame, 1), rospy.Time())
-    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e: 
-        print e
+    frame_positions = get_frame_positions(user, tfBuffer)
+    print frame_positions
+    # check if frame_positions is not none
+
+    # do the math to find joint angles
+    joint_angles['left']['left_s0'] = 0.0 
+    joint_angles['left']['left_s1'] = 0.0
+    joint_angles['left']['left_e0'] = 0.0
+    joint_angles['left']['left_e1'] = 0.0
+    joint_angles['left']['left_w0'] = 0.0
+    joint_angles['left']['left_w1'] = 0.0
+    joint_angles['left']['left_w2'] = 0.0
+    joint_angles['right']['right_s0'] = 0.0
+    joint_angles['right']['right_s1'] = 0.0
+    joint_angles['right']['right_e0'] = 0.0
+    joint_angles['right']['right_e1'] = 0.0
+    joint_angles['right']['right_w0'] = 0.0
+    joint_angles['right']['right_w1'] = 0.0
+    joint_angles['right']['right_w2'] = 0.0
 
     return joint_angles
 
-def get_frame_rotation(user, frame):
-    tfBuffer = tf2_ros.Buffer()
-    listener = tf2_ros.TransformListener(tfBuffer)
-    # trans = tfBuffer.lookup_transform(BASE_FRAME, "%s_%d" % (frame, user), rospy.Time())
-    return 0.0
+def get_frame_positions(user, tfBuffer):
+    frame_positions = dict()
+    try:
+        for frame in FRAMES:
+            transformation= tfBuffer.lookup_transform(BASE_FRAME, "%s_%d" % (frame, user), rospy.Time())
+            translation = transformation.transform.translation
+            pos = np.array([translation.x, translation.y, translation.z])
+            frame_positions[frame] = pos
+    except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e: 
+        print "Problem with kinect tracking, teleoperation paused."
+        print e
+        return None
+    return frame_positions
 
 def teleoperate(rate, user):
     """
@@ -67,11 +87,15 @@ def teleoperate(rate, user):
     @param rate: rate at which to sample joint positions in ms
 
     """
+    rate = rospy.Rate(rate)
+    # TODO: make these attributes of a class
+    tfBuffer = tf2_ros.Buffer()
+    listener = tf2_ros.TransformListener(tfBuffer)
+
     left = baxter_interface.Limb('left')
     right = baxter_interface.Limb('right')
     grip_left = baxter_interface.Gripper('left', CHECK_VERSION)
     grip_right = baxter_interface.Gripper('right', CHECK_VERSION)
-    rate = rospy.Rate(rate)
 
 
     # resetting the grippers 
@@ -88,10 +112,10 @@ def teleoperate(rate, user):
 
 
     while not rospy.is_shutdown():
-        joint_angles = get_joint_angles(user)
+        joint_angles = get_joint_angles(user, tfBuffer)
 
-        left.move_to_joint_positions(joint_angles['left'])
-        right.move_to_joint_positions(joint_angles['right'])
+        # left.move_to_joint_positions(joint_angles['left'])
+        # right.move_to_joint_positions(joint_angles['right'])
 
         rate.sleep()
     return True
@@ -107,7 +131,7 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=arg_fmt,
                                      description=main.__doc__)
     parser.add_argument(
-        '-r', '--rate', type=int, default=1,
+        '-r', '--rate', type=int, default=1000,
         help='rate to sample the joint positions'
     )
 
@@ -124,7 +148,7 @@ def main():
     init_state = rs.state().enabled
 
     def clean_shutdown():
-        print("\nExiting example...")
+        print("\nExiting...")
         if not init_state:
             print("Disabling robot...")
             rs.disable()
@@ -133,7 +157,7 @@ def main():
     print("Enabling robot... ")
     rs.enable()
 
-    teleoperate_robot(args.rate, args.user)
+    teleoperate(args.rate, args.user)
 
 if __name__ == '__main__':
     main()
