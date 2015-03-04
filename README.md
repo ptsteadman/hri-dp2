@@ -1,7 +1,9 @@
+## HRI DP2
+
 This repository contains code for Human Robot Interaction Design Project Two, 
 by Patrick Steadman, Tauhidur Rahman, and  Moumita Basuroychowdhury.
 
-To start teleoperation using the simulator:
+##### To start teleoperation using the simulator:
 
 First, start the simulated baxter environment and enable the robot:
 
