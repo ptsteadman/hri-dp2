@@ -33,7 +33,7 @@ if __name__ == '__main__':
         try:
             frames = []
             for frame in FRAMES:
-                trans = tfBuffer.lookup_transform(BASE_FRAME, "%s_%d" % (frame, 3), rospy.Time())
+                trans = tfBuffer.lookup_transform(BASE_FRAME, "%s_%d" % (frame, 1), rospy.Time())
                 frames.append(trans) 
         except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e: 
             print e
