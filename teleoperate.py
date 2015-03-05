@@ -27,13 +27,6 @@ FRAMES = [
         ]
 
 
-def try_float(x):
-    try:
-        return float(x)
-    except ValueError:
-        return None
-
-
 def get_joint_angles(user, tfBuffer):
     """
 
@@ -44,22 +37,52 @@ def get_joint_angles(user, tfBuffer):
     joint_angles['left'] = dict()
     joint_angles['right'] = dict()
 
-    frame_positions = get_frame_positions(user, tfBuffer)
-    print frame_positions
-    # check if frame_positions is not none
+    frames = get_frame_positions(user, tfBuffer)
+    # TODO: check if frame_positions is not none
+    if frames is None:
+        return None
+
+    reh = frames['right_hand'] - frames['right_elbow']
+    res = frames['right_shoulder'] - frames['right_elbow']
+    leh = frames['left_hand'] - frames['left_elbow']
+    les = frames['left_shoulder'] - frames['left_elbow']
+    rse = np.negative(res)
+    lse = np.negative(les)
+    
+    # find down vector and normals
+    nt = np.cross(frames['right_shoulder'] - frames['torso'], frames['left_shoulder'] - frames['torso'])
+    d = np.cross(nt, frames['left_shoulder'] - frames['right_shoulder'])
+    rns = np.cross(d, rse) 
+    lns = np.cross(d, lse)
+    lne = np.cross(leh, les)
+    rne = np.cross(reh, res)
+    
+    # normalize vectors
+    reh = reh / np.linalg.norm(reh)
+    res = res / np.linalg.norm(res)
+    leh = leh / np.linalg.norm(leh)
+    les = les / np.linalg.norm(les)
+    rse = rse / np.linalg.norm(rse)
+    lse = lse / np.linalg.norm(lse)
+    nt = nt / np.linalg.norm(nt) 
+    d = d / np.linalg.norm(d)
+    rns = rns / np.linalg.norm(rns)
+    lns = lns / np.linalg.norm(lns)
+    lne = lne / np.linalg.norm(lne)
+    rne = rne / np.linalg.norm(rne)
 
     # do the math to find joint angles
-    joint_angles['left']['left_s0'] = 0.0 
-    joint_angles['left']['left_s1'] = 0.0
-    joint_angles['left']['left_e0'] = 0.0
-    joint_angles['left']['left_e1'] = 0.0
+    joint_angles['left']['left_s0'] = np.arccos(np.dot(nt,lns)) 
+    joint_angles['left']['left_s1'] = np.arccos(np.dot(d, lse)) 
+    joint_angles['left']['left_e0'] = np.arccos(np.dot(nt, lne))
+    joint_angles['left']['left_e1'] = np.arccos(np.dot(leh, les))
     joint_angles['left']['left_w0'] = 0.0
     joint_angles['left']['left_w1'] = 0.0
     joint_angles['left']['left_w2'] = 0.0
-    joint_angles['right']['right_s0'] = 0.0
-    joint_angles['right']['right_s1'] = 0.0
-    joint_angles['right']['right_e0'] = 0.0
-    joint_angles['right']['right_e1'] = 0.0
+    joint_angles['right']['right_s0'] = np.arccos(np.dot(nt,rns)) 
+    joint_angles['right']['right_s1'] = np.arccos(np.dot(d, rse))
+    joint_angles['right']['right_e0'] = np.arccos(np.dot(nt, rne))
+    joint_angles['right']['right_e1'] = np.arccos(np.dot(reh, res))  
     joint_angles['right']['right_w0'] = 0.0
     joint_angles['right']['right_w1'] = 0.0
     joint_angles['right']['right_w2'] = 0.0
@@ -75,7 +98,7 @@ def get_frame_positions(user, tfBuffer):
             pos = np.array([translation.x, translation.y, translation.z])
             frame_positions[frame] = pos
     except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException) as e: 
-        print "Problem with kinect tracking, teleoperation paused."
+        print "Problem with kinect tracking."
         print e
         return None
     return frame_positions
@@ -112,12 +135,14 @@ def teleoperate(rate, user):
 
 
     while not rospy.is_shutdown():
-        joint_angles = get_joint_angles(user, tfBuffer)
-
-        # left.move_to_joint_positions(joint_angles['left'])
-        # right.move_to_joint_positions(joint_angles['right'])
-
         rate.sleep()
+        point_angles = get_joint_angles(user, tfBuffer)
+        print joint_angles
+        if joint_angles is not None:
+            left.move_to_joint_positions(joint_angles['left'], timeout=1)
+            right.move_to_joint_positions(joint_angles['right'], timeout=1)
+            print "updated positions"
+    print "Rospy shutdown, exiting loop."
     return True
 
 
@@ -131,7 +156,7 @@ def main():
     parser = argparse.ArgumentParser(formatter_class=arg_fmt,
                                      description=main.__doc__)
     parser.add_argument(
-        '-r', '--rate', type=int, default=1000,
+        '-r', '--rate', type=int, default=10,
         help='rate to sample the joint positions'
     )
 
