@@ -30,16 +30,16 @@ TEST_JOINT_ANGLES = dict()
 TEST_JOINT_ANGLES['left'] = dict()
 TEST_JOINT_ANGLES['right'] = dict()
 TEST_JOINT_ANGLES['left']['left_s0'] = 0.0 
-TEST_JOINT_ANGLES['left']['left_s1'] = 0.0 
+TEST_JOINT_ANGLES['left']['left_s1'] = 3.0 
 TEST_JOINT_ANGLES['left']['left_e0'] = 0.0 
 TEST_JOINT_ANGLES['left']['left_e1'] = 0.0 
 TEST_JOINT_ANGLES['left']['left_w0'] = 0.0
 TEST_JOINT_ANGLES['left']['left_w1'] = 0.0
 TEST_JOINT_ANGLES['left']['left_w2'] = 0.0
 TEST_JOINT_ANGLES['right']['right_s0'] = 0.0  
-TEST_JOINT_ANGLES['right']['right_s1'] = 0.0
+TEST_JOINT_ANGLES['right']['right_s1'] = 3.0
 TEST_JOINT_ANGLES['right']['right_e0'] = 0.0 
-TEST_JOINT_ANGLES['right']['right_e1'] = 3.0 
+TEST_JOINT_ANGLES['right']['right_e1'] = 0.0 
 TEST_JOINT_ANGLES['right']['right_w0'] = 0.0
 TEST_JOINT_ANGLES['right']['right_w1'] = 0.0
 TEST_JOINT_ANGLES['right']['right_w2'] = 0.0
@@ -74,10 +74,9 @@ def get_joint_angles(user, tfBuffer, test):
         
         # find down vector and normals
         nt = np.cross(frames['right_shoulder'] - frames['torso'], frames['left_shoulder'] - frames['torso'])
-        rd = np.cross(nt, frames['left_shoulder'] - frames['right_shoulder'])
-        ld = np.cross(nt, frames['right_shoulder'] - frames['left_shoulder'])
-        rns = np.cross(rd, rse) 
-        lns = np.cross(ld, lse)
+        d = np.cross(nt, frames['right_shoulder'] - frames['left_shoulder'])
+        rns = np.cross(d, rse) 
+        lns = np.cross(d, lse)
         lne = np.cross(leh, les)
         rne = np.cross(reh, res)
         
@@ -89,8 +88,7 @@ def get_joint_angles(user, tfBuffer, test):
         rse = rse / np.linalg.norm(rse)
         lse = lse / np.linalg.norm(lse)
         nt = nt / np.linalg.norm(nt) 
-        ld = ld / np.linalg.norm(ld)
-        rd = rd / np.linalg.norm(rd)
+        d = d / np.linalg.norm(d)
         rns = rns / np.linalg.norm(rns)
         lns = lns / np.linalg.norm(lns)
         lne = lne / np.linalg.norm(lne)
@@ -101,14 +99,14 @@ def get_joint_angles(user, tfBuffer, test):
 
         # do the math to find joint angles
         joint_angles['left']['left_s0'] = np.arccos(np.dot(nt,lns)) 
-        joint_angles['left']['left_s1'] = np.arccos(np.dot(ld, lse))
+        joint_angles['left']['left_s1'] = np.arccos(np.dot(d, lse)) - math.pi/2.0
         joint_angles['left']['left_e0'] = np.arccos(np.dot(nt, lne))
         joint_angles['left']['left_e1'] = math.pi - np.arccos(np.dot(leh, les))
         joint_angles['left']['left_w0'] = 0.0
         joint_angles['left']['left_w1'] = 0.0
         joint_angles['left']['left_w2'] = 0.0
         joint_angles['right']['right_s0'] = np.arccos(np.dot(nt,rns)) 
-        joint_angles['right']['right_s1'] = np.arccos(np.dot(rd, rse)) 
+        joint_angles['right']['right_s1'] = np.arccos(np.dot(d, rse)) - math.pi/2.0
         joint_angles['right']['right_e0'] = np.arccos(np.dot(nt, rne)) 
         joint_angles['right']['right_e1'] = math.pi - np.arccos(np.dot(reh, res))
         joint_angles['right']['right_w0'] = 0.0
