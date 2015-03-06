@@ -10,7 +10,6 @@ First, start the simulated baxter environment and enable the robot:
         cd ~/ros_ws
         . baxter.sh sim
         roslaunch baxter_gazebo baxter_world.launch
-        rosrun baxter_tools enable_robot.py -e
 
 
 Second, start the kinect client in a new terminal tab:
@@ -21,8 +20,10 @@ Third, start tracking in another termial tab:
 
         roslaunch openni_tracker openni_tracker.launch
 
-Finally, start teleoperation.  The skeleton position tracking
-rate and the kinect user number can be specified:
+Finally, enable the robot andstart teleoperation.  
+The skeleton position tracking rate and the kinect 
+user number can be specified:
 
+        rosrun baxter_tools enable_robot.py -e
         python teleoperate.py --user 1 --rate 1000
 
