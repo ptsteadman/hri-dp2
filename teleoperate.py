@@ -26,8 +26,26 @@ FRAMES = [
         'right_hand',
         ]
 
+TEST_JOINT_ANGLES = dict()
+TEST_JOINT_ANGLES['left'] = dict()
+TEST_JOINT_ANGLES['right'] = dict()
+TEST_JOINT_ANGLES['left']['left_s0'] = 0.0 
+TEST_JOINT_ANGLES['left']['left_s1'] = 0.0 
+TEST_JOINT_ANGLES['left']['left_e0'] = 0.0 
+TEST_JOINT_ANGLES['left']['left_e1'] = 0.0 
+TEST_JOINT_ANGLES['left']['left_w0'] = 0.0
+TEST_JOINT_ANGLES['left']['left_w1'] = 0.0
+TEST_JOINT_ANGLES['left']['left_w2'] = 0.0
+TEST_JOINT_ANGLES['right']['right_s0'] = 0.0  
+TEST_JOINT_ANGLES['right']['right_s1'] = 0.0
+TEST_JOINT_ANGLES['right']['right_e0'] = 0.0 
+TEST_JOINT_ANGLES['right']['right_e1'] = 3.0 
+TEST_JOINT_ANGLES['right']['right_w0'] = 0.0
+TEST_JOINT_ANGLES['right']['right_w1'] = 0.0
+TEST_JOINT_ANGLES['right']['right_w2'] = 0.0
 
-def get_joint_angles(user, tfBuffer):
+
+def get_joint_angles(user, tfBuffer, test):
     """
 
     @param line: the line described in a list to process
@@ -38,56 +56,64 @@ def get_joint_angles(user, tfBuffer):
     joint_angles['right'] = dict()
 
     frames = get_frame_positions(user, tfBuffer)
-    # TODO: check if frame_positions is not none
-    if frames is None:
+    if frames is None and not test:
+        # if there's a problem with tracking, don't move
         return None
 
-    reh = frames['right_hand'] - frames['right_elbow']
-    res = frames['right_shoulder'] - frames['right_elbow']
-    leh = frames['left_hand'] - frames['left_elbow']
-    les = frames['left_shoulder'] - frames['left_elbow']
-    rse = np.negative(res)
-    lse = np.negative(les)
-    
-    # find down vector and normals
-    nt = np.cross(frames['right_shoulder'] - frames['torso'], frames['left_shoulder'] - frames['torso'])
-    rd = np.cross(nt, frames['left_shoulder'] - frames['right_shoulder'])
-    ld = np.cross(nt, frames['right_shoulder'] - frames['left_shoulder'])
-    rns = np.cross(rd, rse) 
-    lns = np.cross(ld, lse)
-    lne = np.cross(leh, les)
-    rne = np.cross(reh, res)
-    
-    # normalize vectors
-    reh = reh / np.linalg.norm(reh)
-    res = res / np.linalg.norm(res)
-    leh = leh / np.linalg.norm(leh)
-    les = les / np.linalg.norm(les)
-    rse = rse / np.linalg.norm(rse)
-    lse = lse / np.linalg.norm(lse)
-    nt = nt / np.linalg.norm(nt) 
-    ld = ld / np.linalg.norm(ld)
-    rd = rd / np.linalg.norm(rd)
-    rns = rns / np.linalg.norm(rns)
-    lns = lns / np.linalg.norm(lns)
-    lne = lne / np.linalg.norm(lne)
-    rne = rne / np.linalg.norm(rne)
+    if test:
+        # use the hardcoded angles for debugging
+        joint_angles = TEST_JOINT_ANGLES
+    else:
+        # do the math to find joint angles!
+        reh = frames['right_hand'] - frames['right_elbow']
+        res = frames['right_shoulder'] - frames['right_elbow']
+        leh = frames['left_hand'] - frames['left_elbow']
+        les = frames['left_shoulder'] - frames['left_elbow']
+        rse = np.negative(res)
+        lse = np.negative(les)
+        
+        # find down vector and normals
+        nt = np.cross(frames['right_shoulder'] - frames['torso'], frames['left_shoulder'] - frames['torso'])
+        rd = np.cross(nt, frames['left_shoulder'] - frames['right_shoulder'])
+        ld = np.cross(nt, frames['right_shoulder'] - frames['left_shoulder'])
+        rns = np.cross(rd, rse) 
+        lns = np.cross(ld, lse)
+        lne = np.cross(leh, les)
+        rne = np.cross(reh, res)
+        
+        # normalize vectors
+        reh = reh / np.linalg.norm(reh)
+        res = res / np.linalg.norm(res)
+        leh = leh / np.linalg.norm(leh)
+        les = les / np.linalg.norm(les)
+        rse = rse / np.linalg.norm(rse)
+        lse = lse / np.linalg.norm(lse)
+        nt = nt / np.linalg.norm(nt) 
+        ld = ld / np.linalg.norm(ld)
+        rd = rd / np.linalg.norm(rd)
+        rns = rns / np.linalg.norm(rns)
+        lns = lns / np.linalg.norm(lns)
+        lne = lne / np.linalg.norm(lne)
+        rne = rne / np.linalg.norm(rne)
 
-    # do the math to find joint angles
-    joint_angles['left']['left_s0'] = np.arccos(np.dot(nt,lns)) 
-    joint_angles['left']['left_s1'] = np.arccos(np.dot(ld, lse)) 
-    joint_angles['left']['left_e0'] = np.arccos(np.dot(nt, lne))
-    joint_angles['left']['left_e1'] = np.arccos(np.dot(leh, les))
-    joint_angles['left']['left_w0'] = 0.0
-    joint_angles['left']['left_w1'] = 0.0
-    joint_angles['left']['left_w2'] = 0.0
-    joint_angles['right']['right_s0'] = np.arccos(np.dot(nt,rns)) 
-    joint_angles['right']['right_s1'] = np.arccos(np.dot(rd, rse))
-    joint_angles['right']['right_e0'] = np.arccos(np.dot(nt, rne))
-    joint_angles['right']['right_e1'] = np.arccos(np.dot(reh, res))  
-    joint_angles['right']['right_w0'] = 0.0
-    joint_angles['right']['right_w1'] = 0.0
-    joint_angles['right']['right_w2'] = 0.0
+        print np.linalg.norm(leh)
+        print np.linalg.norm(les)
+
+        # do the math to find joint angles
+        joint_angles['left']['left_s0'] = np.arccos(np.dot(nt,lns)) 
+        joint_angles['left']['left_s1'] = np.arccos(np.dot(ld, lse))
+        joint_angles['left']['left_e0'] = np.arccos(np.dot(nt, lne))
+        joint_angles['left']['left_e1'] = math.pi - np.arccos(np.dot(leh, les))
+        joint_angles['left']['left_w0'] = 0.0
+        joint_angles['left']['left_w1'] = 0.0
+        joint_angles['left']['left_w2'] = 0.0
+        joint_angles['right']['right_s0'] = np.arccos(np.dot(nt,rns)) 
+        joint_angles['right']['right_s1'] = np.arccos(np.dot(rd, rse)) 
+        joint_angles['right']['right_e0'] = np.arccos(np.dot(nt, rne)) 
+        joint_angles['right']['right_e1'] = math.pi - np.arccos(np.dot(reh, res))
+        joint_angles['right']['right_w0'] = 0.0
+        joint_angles['right']['right_w1'] = 0.0
+        joint_angles['right']['right_w2'] = 0.0
 
     return joint_angles
 
@@ -105,7 +131,7 @@ def get_frame_positions(user, tfBuffer):
         return None
     return frame_positions
 
-def teleoperate(rate, user):
+def teleoperate(rate, user, test):
     """
     Teleoperates the robot based on tf2 frames.
 
@@ -138,7 +164,7 @@ def teleoperate(rate, user):
 
     while not rospy.is_shutdown():
         rate.sleep()
-        joint_angles = get_joint_angles(user, tfBuffer)
+        joint_angles = get_joint_angles(user, tfBuffer, test)
         print joint_angles
         if joint_angles is not None:
             left.set_joint_positions(joint_angles['left'])
@@ -163,6 +189,10 @@ def main():
     )
 
     parser.add_argument(
+        '-t', '--test', type=bool, default=False,
+        help='use hardcoded test joing angles'
+    )
+    parser.add_argument(
         '-u', '--user', type=int, default=1,
         help='kinect user number to use'
     )
@@ -184,7 +214,7 @@ def main():
     print("Enabling robot... ")
     rs.enable()
 
-    teleoperate(args.rate, args.user)
+    teleoperate(args.rate, args.user, args.test)
 
 if __name__ == '__main__':
     main()
