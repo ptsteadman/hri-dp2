@@ -12,7 +12,6 @@ import math
 import numpy as np
 
 import baxter_interface
-
 from baxter_interface import CHECK_VERSION
 
 BASE_FRAME = 'camera_depth_frame'
@@ -29,23 +28,23 @@ FRAMES = [
 TEST_JOINT_ANGLES = dict()
 TEST_JOINT_ANGLES['left'] = dict()
 TEST_JOINT_ANGLES['right'] = dict()
-TEST_JOINT_ANGLES['left']['left_s0'] = 0.0 
-TEST_JOINT_ANGLES['left']['left_s1'] = 3.0 
-TEST_JOINT_ANGLES['left']['left_e0'] = 0.0 
+TEST_JOINT_ANGLES['left']['left_s0'] = 0.0
+TEST_JOINT_ANGLES['left']['left_s1'] = 0.0 
+TEST_JOINT_ANGLES['left']['left_e0'] = 0.0
 TEST_JOINT_ANGLES['left']['left_e1'] = 0.0 
 TEST_JOINT_ANGLES['left']['left_w0'] = 0.0
 TEST_JOINT_ANGLES['left']['left_w1'] = 0.0
 TEST_JOINT_ANGLES['left']['left_w2'] = 0.0
-TEST_JOINT_ANGLES['right']['right_s0'] = 0.0  
-TEST_JOINT_ANGLES['right']['right_s1'] = 3.0
-TEST_JOINT_ANGLES['right']['right_e0'] = 0.0 
-TEST_JOINT_ANGLES['right']['right_e1'] = 0.0 
+TEST_JOINT_ANGLES['right']['right_s0'] = 0.0 
+TEST_JOINT_ANGLES['right']['right_s1'] = 0.0
+TEST_JOINT_ANGLES['right']['right_e0'] = 0.0
+TEST_JOINT_ANGLES['right']['right_e1'] = math.pi 
 TEST_JOINT_ANGLES['right']['right_w0'] = 0.0
 TEST_JOINT_ANGLES['right']['right_w1'] = 0.0
 TEST_JOINT_ANGLES['right']['right_w2'] = 0.0
 
 
-def get_joint_angles(user, tfBuffer, test):
+def get_joint_angles(user, tfBuffer, test, mirrored):
     """
 
     @param line: the line described in a list to process
@@ -105,15 +104,37 @@ def get_joint_angles(user, tfBuffer, test):
         joint_angles['left']['left_w0'] = 0.0
         joint_angles['left']['left_w1'] = 0.0
         joint_angles['left']['left_w2'] = 0.0
-        joint_angles['right']['right_s0'] = np.arccos(np.dot(nt,rns)) 
+        joint_angles['right']['right_s0'] = np.arccos(np.dot(nt,rns)) - math.pi
         joint_angles['right']['right_s1'] = np.arccos(np.dot(d, rse)) - math.pi/2.0
-        joint_angles['right']['right_e0'] = np.arccos(np.dot(nt, rne)) 
+        joint_angles['right']['right_e0'] = np.arccos(np.dot(nt, rne)) - math.pi
         joint_angles['right']['right_e1'] = math.pi - np.arccos(np.dot(reh, res))
         joint_angles['right']['right_w0'] = 0.0
         joint_angles['right']['right_w1'] = 0.0
         joint_angles['right']['right_w2'] = 0.0
 
-    return joint_angles
+    if mirrored:
+        return joint_angles
+    else:
+        # this is the default option, where the teleoperator's
+        # left/right arm corresponds to the robot's left/right arm
+        unmirrored = dict()
+        unmirrored['left'] = dict()
+        unmirrored['right'] = dict()
+        unmirrored['left']['left_s0'] = joint_angles['right']['right_s0']
+        unmirrored['left']['left_s1'] = joint_angles['right']['right_s1']
+        unmirrored['left']['left_e0'] = joint_angles['right']['right_e0']
+        unmirrored['left']['left_e1'] = joint_angles['right']['right_e1']
+        unmirrored['left']['left_w0'] = 0.0 
+        unmirrored['left']['left_w1'] = 0.0
+        unmirrored['left']['left_w2'] = 0.0
+        unmirrored['right']['right_s0'] = joint_angles['left']['left_s0']
+        unmirrored['right']['right_s1'] = joint_angles['left']['left_s1']
+        unmirrored['right']['right_e0'] = joint_angles['left']['left_e0']
+        unmirrored['right']['right_e1'] = joint_angles['left']['left_e1']
+        unmirrored['right']['right_w0'] = 0.0
+        unmirrored['right']['right_w1'] = 0.0
+        unmirrored['right']['right_w2'] = 0.0
+        return unmirrored
 
 def get_frame_positions(user, tfBuffer):
     frame_positions = dict()
@@ -129,7 +150,7 @@ def get_frame_positions(user, tfBuffer):
         return None
     return frame_positions
 
-def teleoperate(rate, user, test):
+def teleoperate(rate, user, test, mirrored):
     """
     Teleoperates the robot based on tf2 frames.
 
@@ -162,7 +183,7 @@ def teleoperate(rate, user, test):
 
     while not rospy.is_shutdown():
         rate.sleep()
-        joint_angles = get_joint_angles(user, tfBuffer, test)
+        joint_angles = get_joint_angles(user, tfBuffer, test, mirrored)
         print joint_angles
         if joint_angles is not None:
             left.set_joint_positions(joint_angles['left'])
@@ -188,11 +209,16 @@ def main():
 
     parser.add_argument(
         '-t', '--test', type=bool, default=False,
-        help='use hardcoded test joing angles'
+        help='use hardcoded test joint angles'
     )
     parser.add_argument(
         '-u', '--user', type=int, default=1,
         help='kinect user number to use'
+    )
+
+    parser.add_argument(
+        '-m', '--mirrored', type=bool, default=False,
+        help='mirror the teleoperators movements'
     )
     args = parser.parse_args(rospy.myargv()[1:])
 
@@ -212,7 +238,7 @@ def main():
     print("Enabling robot... ")
     rs.enable()
 
-    teleoperate(args.rate, args.user, args.test)
+    teleoperate(args.rate, args.user, args.test, args.mirrored)
 
 if __name__ == '__main__':
     main()
