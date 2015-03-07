@@ -25,5 +25,5 @@ The skeleton position tracking rate and the kinect
 user number can be specified:
 
         rosrun baxter_tools enable_robot.py -e
-        python teleoperate.py --user 1 --rate 1000
+        python teleoperate.py --user 1 --rate 10 --mirrored false
 
