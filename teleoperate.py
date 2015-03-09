@@ -93,9 +93,6 @@ def get_joint_angles(user, tfBuffer, test, mirrored):
         lne = lne / np.linalg.norm(lne)
         rne = rne / np.linalg.norm(rne)
 
-        print np.linalg.norm(leh)
-        print np.linalg.norm(les)
-
         # do the math to find joint angles
         joint_angles['left']['left_s0'] = np.arccos(np.dot(nt,lns)) 
         joint_angles['left']['left_s1'] = np.arccos(np.dot(d, lse)) - math.pi/2.0
