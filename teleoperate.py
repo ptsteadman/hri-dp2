@@ -164,22 +164,6 @@ def teleoperate(rate, user, test, mirrored):
 
     left = baxter_interface.Limb('left')
     right = baxter_interface.Limb('right')
-    grip_left = baxter_interface.Gripper('left', CHECK_VERSION)
-    grip_right = baxter_interface.Gripper('right', CHECK_VERSION)
-
-
-    # resetting the grippers 
-    if grip_left.error():
-        grip_left.reset()
-    if grip_right.error():
-        grip_right.reset()
-    if (not grip_left.calibrated() and
-        grip_left.type() != 'custom'):
-        grip_left.calibrate()
-    if (not grip_right.calibrated() and
-        grip_right.type() != 'custom'):
-        grip_right.calibrate()
-
 
     while not rospy.is_shutdown():
         rate.sleep()
